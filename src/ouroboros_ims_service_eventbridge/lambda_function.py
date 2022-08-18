@@ -1,6 +1,11 @@
 import json
+import botocore
 from utilities.aws import AWSUtils
-        
+
+def delete_rule(utils,record):
+    response = dict()
+    return response
+
 def put_rule(utils,record):
     event_bridge_rule = dict()
     client = utils.client("events")
@@ -21,9 +26,7 @@ def put_rule(utils,record):
     elif payload.get("eventPattern"):
         params["EventPattern"] = payload["eventPattern"]
     resp_put_rule = client.put_rule(**params)
-    utils.logger.info('--------')
     utils.logger.info(payload)
-    utils.logger.info('--------')
     resp_put_targets = client.put_targets(
         Rule=params["Name"],
         EventBusName=params["EventBusName"],
@@ -31,9 +34,9 @@ def put_rule(utils,record):
             {
                 'Id': payload["targetId"],
                 'Arn': payload["targetArn"],
-                'SqsParameters': {
-                    'MessageGroupId': payload["messageGroupId"]
-                },
+                # 'SqsParameters': {
+                #    'MessageGroupId': payload["messageGroupId"]
+                #},
                 'Input': json.dumps(payload["input"])
             }
         ]
@@ -52,9 +55,12 @@ def lambda_handler(event, context):
     result = list()
     for record in records:
         utils = AWSUtils(region_name="ap-southeast-1",role_arn="arn:aws:iam::592336536196:role/ouroboros_ims_master")
-        resp_put_rule = put_rule(utils,record)
-        utils.logger.info(resp_put_rule)
-
+        try:
+            resp_put_rule = put_rule(utils,record)
+            utils.logger.info(resp_put_rule)
+        except botocore.exceptions.ClientError as error:
+            resp_put_rule = error.response["Error"]
+            utils.logger.info(resp_put_rule)
         result.append(resp_put_rule)
     return {
         'statusCode': 200,
