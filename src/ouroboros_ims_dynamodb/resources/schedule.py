@@ -1,5 +1,6 @@
 import json
 import os
+import resource
 import boto3
 import decimal
 import ipaddress
@@ -25,6 +26,11 @@ class Rule(Resource):
                     "resource":"/resources/schedule/rules",
                     "httpMethod":"POST",
                     "func":"create"
+                },
+                {
+                    "resource":"/resources/schedule/rules/{rule-id}",
+                    "httpMethod":"DELETE",
+                    "func":"delete"
                 }
             ]
         )
@@ -89,8 +95,24 @@ class Rule(Resource):
                 messages=[ce.response["Error"]["Message"]]
             )
     
-    def delete(self):
-        return
+    def delete(self,event:dict) -> dict:
+        resource = event["resources"]
+        try:
+            response = self.table.delete_item(
+                Key={
+                    "ruleId":resource["rule-id"]
+                }
+            )
+            return dict(
+                code=response["ResponseMetadata"]["HTTPStatusCode"],
+                data=response
+            )
+        except ClientError as ce:
+            return dict(
+                code=ce.response["ResponseMetadata"]["HTTPStatusCode"],
+                data=ce.response['Error'],
+                messages=[ce.response["Error"]["Message"]]
+            )
     
     def update(self):
         return

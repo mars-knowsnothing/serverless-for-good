@@ -3,11 +3,29 @@ import botocore
 from utilities.aws import AWSUtils
 
 def delete_rule(utils,record):
-    response = dict()
-    return response
+    result = dict()
+    client = utils.client("events")
+    payload = json.loads(record["body"])
+    resp_remove_targets = client.remove_targets(
+        Rule="ouroboros-ims-event-{name}".format(name=payload["name"]).lower(),
+        EventBusName=payload.get("eventBusName","default"),
+        Force=payload.get("force",False),
+        Ids=[
+            payload["targetId"],
+        ],
+    )
+    resp_delete_rule = client.delete_rule(
+        Name="ouroboros-ims-event-{name}".format(name=payload["name"]).lower(),
+        EventBusName=payload.get("eventBusName","default"),
+        Force=payload.get("force",False),
+    )
+    result["resp_remove_targets"]=resp_remove_targets
+    result["resp_delete_rule"]=resp_delete_rule
+
+    return result
 
 def put_rule(utils,record):
-    event_bridge_rule = dict()
+    result = dict()
     client = utils.client("events")
     payload = json.loads(record["body"])
     utils.logger.info(payload)
@@ -43,10 +61,10 @@ def put_rule(utils,record):
     )
     print(resp_put_rule)
     print(resp_put_targets)
-    event_bridge_rule["resp_put_rule"]=resp_put_rule
-    event_bridge_rule["resp_put_targets"]=resp_put_targets
+    result["resp_put_rule"]=resp_put_rule
+    result["resp_put_targets"]=resp_put_targets
 
-    return event_bridge_rule
+    return result
 
 def lambda_handler(event, context):
     # TODO implement
@@ -55,13 +73,20 @@ def lambda_handler(event, context):
     result = list()
     for record in records:
         utils = AWSUtils(region_name="ap-southeast-1",role_arn="arn:aws:iam::592336536196:role/ouroboros_ims_master")
-        try:
-            resp_put_rule = put_rule(utils,record)
+        if record["attributes"]["MessageGroupId"]=="event_bridge_put_rule":
+            try:
+                resp_put_rule = put_rule(utils,record)
+            except botocore.exceptions.ClientError as error:
+                resp_put_rule = error.response["Error"]
             utils.logger.info(resp_put_rule)
-        except botocore.exceptions.ClientError as error:
-            resp_put_rule = error.response["Error"]
-            utils.logger.info(resp_put_rule)
-        result.append(resp_put_rule)
+            result.append(resp_put_rule)
+        elif record["attributes"]["MessageGroupId"]=="event_bridge_delete_rule":
+            try:
+                resp_delete_rule = delete_rule(utils,record)
+            except botocore.exceptions.ClientError as error:
+                resp_delete_rule = error.response["Error"]
+            utils.logger.info(resp_delete_rule)
+            result.append(resp_delete_rule)
     return {
         'statusCode': 200,
         'body': json.dumps(result)

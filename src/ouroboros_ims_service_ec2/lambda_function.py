@@ -78,10 +78,10 @@ def lambda_handler(event, context):
     records = event["Records"]
     result = list()
     for record in records:
-        utils = AWSUtils(region_name="ap-southeast-1",role_arn="arn:aws:iam::592336536196:role/ouroboros_ims_master")
-        print("---record---")
         print(record)
         params = json.loads(record["body"])
+        accountId = params["accountId"]
+        utils = AWSUtils(region_name="ap-southeast-1",role_arn="arn:aws:iam::{accountId}:role/ouroboros_ims_master".format(accountId=accountId))
         try:
             instances = describe_instances(utils,filters=params["filters"])
             if params["action"]=="start_instances":

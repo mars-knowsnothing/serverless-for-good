@@ -52,8 +52,18 @@ class Dispatcher(object):
         })
         return record
     def rule_remove_handler(self, streamEvent: dict) -> dict:
-        result = dict()
         self.utils.logger.info(streamEvent)
+        result = dict()
+        _ = {
+            "name": streamEvent["eventContent"]["OldImage"]["ruleName"]["S"],
+            'targetId': streamEvent["eventContent"]["OldImage"]["targetId"]["S"]
+        }
+        event_delete_rule = {
+            "QueueUrl":"https://sqs.ap-southeast-1.amazonaws.com/592336536196/sqs_dev_event_bridge_change.fifo",
+            "MessageBody":_,
+            "MessageGroupId":"event_bridge_delete_rule"
+        }
+        result.update({"put_rule":self.push_event(event_delete_rule)})
         return result
 
     def rule_insert_handler(self, streamEvent: dict) -> dict:
@@ -66,6 +76,7 @@ class Dispatcher(object):
             'targetId': streamEvent["eventContent"]["NewImage"]["targetId"]["S"],
             'targetArn': streamEvent["eventContent"]["NewImage"]["targetArn"]["S"],
             "input": {
+                "accountId":streamEvent["eventContent"]["NewImage"]["accountId"]["S"],
                 "action":streamEvent["eventContent"]["NewImage"]["action"]["S"],
                 "desiredState": {
                     "name":streamEvent["eventContent"]["NewImage"]["desiredState"]["M"]["name"]["S"]
