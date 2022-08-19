@@ -442,24 +442,24 @@ Successfully created/updated stack - OuroborosAppSam in ap-southeast-1
 
 * Lambda Application  
 
-![](docs/lambda-app.png)
+![](image/lambda-app.png)
 
 * Lambdas  
 
-![](docs/lambda-example.png)  
+![](image/lambda-example.png)  
 
 * CloudFormation  
 
-![](docs/cfn.png)
+![](image/cfn.png)
 
 * API Gateway  
 
-![](docs/api.png)
+![](image/api.png)
 
 * DynamoDB
 
-![](docs/ddb.png)
+![](image/ddb.png)
 
 * SQS
 
-![](docs/sqs.png)
+![](image/sqs.png)
