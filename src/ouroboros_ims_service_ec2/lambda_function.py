@@ -2,18 +2,20 @@ import json
 import botocore
 import boto3
 from utilities.aws import AWSUtils
+from utilities.complex_encoder import ComplexEncoder
 from datetime import datetime, timezone, timedelta
 
 TIME_ZONE = timezone(timedelta(hours=8))
 dynamodb = boto3.resource('dynamodb')
-activity_log_table = dynamodb.Table('cmdb_dev_activity_log')
+log_table = dynamodb.Table('cmdb_dev_schedule_logs')
 
-def log_activity(event):
+def event_log(event):
     now = datetime.utcnow().astimezone(TIME_ZONE)
     updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
     _ = event.copy()
     _["updatedAt"] = updated_at
-    response = activity_log_table.put_item(
+    _ = json.loads(json.dumps(_,cls=ComplexEncoder))
+    response = log_table.put_item(
         Item=_,
     )
     return response
@@ -58,7 +60,6 @@ def start_instances(utils,InstanceIds,DryRun=False):
             # AdditionalInfo='string',
             DryRun=DryRun
         )
-    log_activity(response)
     return response
 
 def stop_instances(utils,InstanceIds, Hibernate=False, Force=False, DryRun=False):
@@ -69,7 +70,6 @@ def stop_instances(utils,InstanceIds, Hibernate=False, Force=False, DryRun=False
         DryRun=DryRun,
         Force=Force
     )
-    log_activity(response)
     return response
 
 def lambda_handler(event, context):
@@ -86,10 +86,15 @@ def lambda_handler(event, context):
             instances = describe_instances(utils,filters=params["filters"])
             if params["action"]=="start_instances":
                 resp = start_instances(utils,[i["InstanceId"] for i in instances])
+
             elif params["action"]=="stop_instances":
                 resp = stop_instances(utils,[i["InstanceId"] for i in instances])
-            print(resp)
-            print("---record---")
+            event_log(dict(
+                eventId=record["messageId"],
+                targets=instances,
+                params=params,
+                response=resp
+            ))
         except Exception as e:
             print(e)
             pass
