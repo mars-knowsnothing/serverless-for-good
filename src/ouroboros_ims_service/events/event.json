@@ -1,0 +1,13 @@
+{
+  "ruleName": "start-xp",
+  "scheduleExpression": "cron(20 6 * * ? *)",
+  "targetArn": "arn:aws:sqs:ap-southeast-1:592336536196:sqs_dev_ec2_state_change",
+  "targetId": "sqs_ec2_state_change",
+  "desiredState": {
+    "name": "running"
+  },
+  "filters": {
+    "tag:Name": "instance-scheduler"
+  },
+  "action":"start_instances"
+}

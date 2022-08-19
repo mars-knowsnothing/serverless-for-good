@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Ouroboros Simple APP to manage ec2 by tags
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  OuroborosCMDBFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ouroboros_ims_dynamodb_sam/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies: AmazonDynamoDBFullAccess
+      Architectures:
+        - x86_64
+      Events:
+        OuroborosFunctionAPIGET:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /resources/schedule/rules
+            Method: get
+        OuroborosFunctionAPIPOST:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /resources/schedule/rules
+            Method: post
+            Auth:
+              ApiKeyRequired: true
+        OuroborosFunctionAPIDELETE:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /resources/schedule/rules/{rule-id}
+            Method: delete
+            Auth:
+              ApiKeyRequired: true
+
+  OuroborosEventDispatcherFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ouroboros_ims_event_dispatcher_sam/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies: AmazonDynamoDBFullAccess
+      Architectures:
+        - x86_64
+      Events:
+        ouroborosDDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: arn:aws:dynamodb:ap-southeast-1:592336536196:table/cmdb_dev_schedule_rules/stream/2022-08-17T03:05:06.359
+            StartingPosition: LATEST
+            BatchSize: 1
+
+  OuroborosEventHandlerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ouroboros_ims_service_eventbridge_sam/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies: AmazonSQSFullAccess
+      Architectures:
+        - x86_64
+      Events:
+        OuroborosFunctionSQSQueue:
+          Type: SQS
+          Properties:
+            Queue: arn:aws:sqs:ap-southeast-1:592336536196:sqs_dev_event_bridge_change.fifo
+
+  OuroborosEC2HandlerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ouroboros_ims_service_ec2_sam/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies: AmazonSQSFullAccess
+      Architectures:
+        - x86_64
+      Events:
+        OuroborosFunctionSQSQueue:
+          Type: SQS
+          Properties:
+            Queue: arn:aws:sqs:ap-southeast-1:592336536196:sqs_dev_ec2_state_change
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  OuroborosFunctionApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/resources/schedule/rules"
+  OuroborosCMDBFunctionFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt OuroborosCMDBFunction.Arn
+  OuroborosCMDBFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt OuroborosCMDBFunctionRole.Arn
