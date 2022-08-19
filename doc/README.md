@@ -135,13 +135,16 @@ cron(55 14 * * ? *) # Everyday at 14:55 UTC
 ## Activity logs can be found in logs tab
 ![guide-7](./image/guide-7.png)
 
-# How to Deploy with AWS SAM / 如何使用AWS SAM部署
+
+
+
+# How to Deploy backend serverless with AWS SAM / 如何使用AWS SAM部署后端无服务架构
 
 Ouroboros backend serverless app follows AWS SAM architecture.  
-Learn more on the original [README](README-AWS.md)
+Learn more on the original AWS SAM docs
 
 Ouroboros后端无服务架构基于AWS SAM架构实现和部署。
-关于AWS SAM请参阅AWS [README](README-AWS.md)
+关于AWS SAM请参阅AWS SAM文档
 
 # Create or Get Dependency Service Resource / 创建或获取依赖资源
 
@@ -442,24 +445,24 @@ Successfully created/updated stack - OuroborosAppSam in ap-southeast-1
 
 * Lambda Application  
 
-![](docs/lambda-app.png)
+![](image/lambda-app.png)
 
 * Lambdas  
 
-![](docs/lambda-example.png)  
+![](image/lambda-example.png)  
 
 * CloudFormation  
 
-![](docs/cfn.png)
+![](image/cfn.png)
 
 * API Gateway  
 
-![](docs/api.png)
+![](image/api.png)
 
 * DynamoDB
 
-![](docs/ddb.png)
+![](image/ddb.png)
 
 * SQS
 
-![](docs/sqs.png)
+![](image/sqs.png)
